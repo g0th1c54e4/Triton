@@ -15814,7 +15814,6 @@ namespace triton {
         /* Create symbolic operands */
         auto op1    = this->symbolicEngine->getOperandAst(inst, dst);
         auto op2    = this->astCtxt->zx(dst.getBitSize() - src.getBitSize(), this->symbolicEngine->getOperandAst(inst, src));
-        auto op2bis = op2;
 
         if (dst.getBitSize() == triton::bitsize::qword)
           op2 = this->astCtxt->bvand(op2, this->astCtxt->bv(triton::bitsize::qword-1, dst.getBitSize()));
@@ -15842,7 +15841,7 @@ namespace triton {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
         }
 
-        if (op2bis->evaluate() > dst.getBitSize()) {
+        if (op2->evaluate() >= dst.getBitSize()) {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
         }
 
@@ -15986,7 +15985,6 @@ namespace triton {
         /* Create symbolic operands */
         auto op1    = this->symbolicEngine->getOperandAst(inst, dst);
         auto op2    = this->astCtxt->zx(dst.getBitSize() - src.getBitSize(), this->symbolicEngine->getOperandAst(inst, src));
-        auto op2bis = op2;
 
         if (dst.getBitSize() == triton::bitsize::qword)
           op2 = this->astCtxt->bvand(op2, this->astCtxt->bv(triton::bitsize::qword-1, dst.getBitSize()));
@@ -16014,7 +16012,7 @@ namespace triton {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
         }
 
-        if (op2bis->evaluate() > dst.getBitSize()) {
+        if (op2->evaluate() >= dst.getBitSize()) {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
         }
 

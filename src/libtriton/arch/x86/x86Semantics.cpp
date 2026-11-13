@@ -4140,14 +4140,15 @@ namespace triton {
 
         /* Create the semantics - side effect */
         auto stack      = this->architecture->getStackPointer();
-        auto stackValue = alignSubStack_s(inst, stack.getSize());
+        auto pushSize   = stack.getSize() == triton::size::qword ? stack.getSize() : src.getSize();
+        auto stackValue = alignSubStack_s(inst, pushSize);
         auto pc         = triton::arch::OperandWrapper(this->architecture->getProgramCounter());
-        auto sp         = triton::arch::OperandWrapper(triton::arch::MemoryAccess(stackValue, stack.getSize()));
+        auto sp         = triton::arch::OperandWrapper(triton::arch::MemoryAccess(stackValue, pushSize));
 
-        auto node1 = this->astCtxt->bv(inst.getNextAddress(), pc.getBitSize());
+        auto node1 = this->astCtxt->bv(inst.getNextAddress(), sp.getBitSize());
 
         /* Create the semantics */
-        auto node2 = op1;
+        auto node2 = this->astCtxt->zx(pc.getBitSize() - op1->getBitvectorSize(), op1);
 
         /* Create the symbolic expression */
         auto expr1 = this->symbolicEngine->createSymbolicExpression(inst, node1, sp, "Saved Program Counter");

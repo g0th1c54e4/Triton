@@ -15864,7 +15864,6 @@ namespace triton {
         auto op1    = this->symbolicEngine->getOperandAst(inst, dst);
         auto op2    = this->symbolicEngine->getOperandAst(inst, src1);
         auto op3    = this->symbolicEngine->getOperandAst(inst, src2);
-        auto op3bis = op3;
 
         switch (dst.getBitSize()) {
           /* Mask 0x3f MOD size */
@@ -15905,7 +15904,7 @@ namespace triton {
         auto expr = this->symbolicEngine->createSymbolicExpression(inst, node, dst, "SHLD operation");
 
         /* Spread taint */
-        expr->isTainted = this->taintEngine->taintAssignment(dst, src1);
+        expr->isTainted = this->taintEngine->taintUnion(dst, src1);
         expr->isTainted |= this->taintEngine->taintUnion(dst, src2);
 
         /* Update symbolic flags */
@@ -15924,7 +15923,7 @@ namespace triton {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));
         }
 
-        if (op3bis->evaluate() > dst.getBitSize()) {
+        if (op3->evaluate() > dst.getBitSize()) {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));
@@ -16036,7 +16035,6 @@ namespace triton {
         auto op1    = this->symbolicEngine->getOperandAst(inst, dst);
         auto op2    = this->symbolicEngine->getOperandAst(inst, src1);
         auto op3    = this->symbolicEngine->getOperandAst(inst, src2);
-        auto op3bis = op3;
 
         switch (dst.getBitSize()) {
           /* Mask 0x3f MOD size */
@@ -16077,7 +16075,7 @@ namespace triton {
         auto expr = this->symbolicEngine->createSymbolicExpression(inst, node, dst, "SHRD operation");
 
         /* Spread taint */
-        expr->isTainted = this->taintEngine->taintAssignment(dst, src1);
+        expr->isTainted = this->taintEngine->taintUnion(dst, src1);
         expr->isTainted |= this->taintEngine->taintUnion(dst, src2);
 
         /* Update symbolic flags */
@@ -16096,7 +16094,7 @@ namespace triton {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));
         }
 
-        if (op3bis->evaluate() > dst.getBitSize()) {
+        if (op3->evaluate() > dst.getBitSize()) {
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
           this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));

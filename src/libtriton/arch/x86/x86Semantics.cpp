@@ -2550,6 +2550,19 @@ namespace triton {
       }
 
 
+      void x86Semantics::pfBitScan_s(triton::arch::Instruction& inst,
+                                     const triton::arch::OperandWrapper& src,
+                                     const triton::ast::SharedAbstractNode& value) {
+        auto node = this->astCtxt->bvtrue();
+        for (triton::uint32 bit = 0; bit < value->getBitvectorSize(); ++bit)
+          node = this->astCtxt->bvxor(node, this->astCtxt->extract(bit, bit, value));
+
+        auto pf = this->architecture->getRegister(ID_REG_X86_PF);
+        auto expr = this->symbolicEngine->createSymbolicExpression(inst, node, pf, "Parity flag");
+        expr->isTainted = this->taintEngine->setTaintRegister(pf, this->taintEngine->isTainted(src));
+      }
+
+
       void x86Semantics::pfShl_s(triton::arch::Instruction& inst,
                                  const triton::engines::symbolic::SharedSymbolicExpression& parent,
                                  triton::arch::OperandWrapper& dst,
@@ -3619,13 +3632,11 @@ namespace triton {
 
         /* Update symbolic flags */
         this->zfBsf_s(inst, expr, src, op2);
-
-        /* Tag undefined flags */
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_PF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_SF));
+        this->pfBitScan_s(inst, src, op2);
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_AF), "Clears auxiliary flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_CF), "Clears carry flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_OF), "Clears overflow flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_SF), "Clears sign flag");
 
         /* Update the symbolic control flow */
         this->controlFlow_s(inst);
@@ -3809,13 +3820,11 @@ namespace triton {
 
         /* Update symbolic flags */
         this->zfBsf_s(inst, expr, src, op2); /* same as bsf */
-
-        /* Tag undefined flags */
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_AF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_CF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_OF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_PF));
-        this->undefined_s(inst, this->architecture->getRegister(ID_REG_X86_SF));
+        this->pfBitScan_s(inst, src, op2);
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_AF), "Clears auxiliary flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_CF), "Clears carry flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_OF), "Clears overflow flag");
+        this->clearFlag_s(inst, this->architecture->getRegister(ID_REG_X86_SF), "Clears sign flag");
 
         /* Update the symbolic control flow */
         this->controlFlow_s(inst);

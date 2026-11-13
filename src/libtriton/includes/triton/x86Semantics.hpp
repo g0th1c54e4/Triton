@@ -385,6 +385,11 @@ namespace triton {
                     triton::arch::OperandWrapper& dst,
                     bool vol=false);
 
+          //! Computes PF across the full BSF/BSR source operand rather than only the low result byte.
+          void pfBitScan_s(triton::arch::Instruction& inst,
+                           const triton::arch::OperandWrapper& src,
+                           const triton::ast::SharedAbstractNode& value);
+
           //! The PF semantics.
           void pfShl_s(triton::arch::Instruction& inst,
                        const triton::engines::symbolic::SharedSymbolicExpression& parent,

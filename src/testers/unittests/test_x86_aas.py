@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
-"""验证 AAS 的整 AX 借位、符号关系和 AF 污点。"""
+"""Verify AAS borrow, symbolic expression, and AF taint semantics."""
 
 import unittest
 

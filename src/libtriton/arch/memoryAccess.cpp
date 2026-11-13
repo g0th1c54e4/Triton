@@ -17,6 +17,7 @@ namespace triton {
     MemoryAccess::MemoryAccess() {
       this->address    = 0;
       this->leaAst     = nullptr;
+      this->leaOffset  = nullptr;
       this->pcRelative = 0;
     }
 
@@ -55,6 +56,16 @@ namespace triton {
 
     triton::ast::SharedAbstractNode MemoryAccess::getLeaAst(void) const {
       return this->leaAst;
+    }
+
+
+    triton::ast::SharedAbstractNode MemoryAccess::getLeaOffset(void) const {
+      return this->leaOffset;
+    }
+
+
+    void MemoryAccess::setLeaOffset(const triton::ast::SharedAbstractNode& offset) {
+      this->leaOffset = offset;
     }
 
 
@@ -188,6 +199,7 @@ namespace triton {
       this->displacement = other.displacement;
       this->indexReg     = other.indexReg;
       this->leaAst       = other.leaAst;
+      this->leaOffset    = other.leaOffset;
       this->pcRelative   = other.pcRelative;
       this->scale        = other.scale;
       this->segmentReg   = other.segmentReg;

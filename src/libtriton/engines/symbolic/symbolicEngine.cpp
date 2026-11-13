@@ -1290,13 +1290,29 @@ namespace triton {
                                     dispAst
                                   );
 
+          /* Preserve the bit-string instruction's offset when memory callbacks recompute the LEA. */
+          auto leaOffset = mem.getLeaOffset();
+          if (leaOffset != nullptr) {
+            auto offsetSize = leaOffset->getBitvectorSize();
+            if (bitSize > offsetSize)
+              leaAst = this->astCtxt->extract(offsetSize - 1, 0, leaAst);
+            else if (bitSize < offsetSize)
+              leaAst = this->astCtxt->zx(offsetSize - bitSize, leaAst);
+            bitSize = offsetSize;
+            leaAst = this->astCtxt->bvadd(leaAst, leaOffset);
+          }
+
           /* Use segments as base address instead of selector into the GDT. */
           if (this->architecture->isRegisterValid(seg)) {
-            leaAst = this->astCtxt->bvadd(
-                       this->getRegisterAst(seg),
-                       this->astCtxt->sx((seg.getBitSize() - bitSize), leaAst)
-                     );
+            auto segmentOffset = leaOffset != nullptr ?
+              this->astCtxt->zx(seg.getBitSize() - bitSize, leaAst) :
+              this->astCtxt->sx(seg.getBitSize() - bitSize, leaAst);
+            leaAst = this->astCtxt->bvadd(this->getRegisterAst(seg), segmentOffset);
           }
+
+          /* Array-memory indices use the architecture GPR width; wrap narrow addresses before zero extension. */
+          if (leaOffset != nullptr && leaAst->getBitvectorSize() < this->architecture->gprBitSize())
+            leaAst = this->astCtxt->zx(this->architecture->gprBitSize() - leaAst->getBitvectorSize(), leaAst);
 
           /* Set AST */
           mem.setLeaAst(leaAst);

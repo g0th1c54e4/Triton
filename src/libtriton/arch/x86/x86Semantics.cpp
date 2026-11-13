@@ -432,6 +432,27 @@ namespace triton {
   namespace arch {
     namespace x86 {
 
+      namespace {
+        /* Scan only the instruction prefix region; matching bytes in displacements or immediates are not prefixes. */
+        bool hasX86Prefix(const triton::arch::Instruction& inst, triton::uint8 prefix) {
+          for (triton::uint32 i = 0; i < inst.getSize(); ++i) {
+            auto byte = inst.getOpcode()[i];
+            if (byte == prefix)
+              return true;
+            switch (byte) {
+              case 0xf0: case 0xf2: case 0xf3:
+              case 0x2e: case 0x36: case 0x3e: case 0x26: case 0x64: case 0x65:
+              case 0x66: case 0x67:
+                break;
+              default:
+                if (inst.getArchitecture() != triton::arch::ARCH_X86_64 || byte < 0x40 || byte > 0x4f)
+                  return false;
+            }
+          }
+          return false;
+        }
+      }
+
       x86Semantics::x86Semantics(triton::arch::Architecture* architecture,
                                  triton::engines::symbolic::SymbolicEngine* symbolicEngine,
                                  triton::engines::taint::TaintEngine* taintEngine,
@@ -3870,14 +3891,44 @@ namespace triton {
       }
 
 
+      void x86Semantics::adjustBitTestMemory_s(triton::arch::Instruction& inst,
+                                              triton::arch::OperandWrapper& dst,
+                                              const triton::arch::OperandWrapper& src,
+                                              const triton::ast::SharedAbstractNode& offset) {
+        if (dst.getType() != triton::arch::OP_MEM || src.getType() != triton::arch::OP_REG)
+          return;
+
+        /* Arithmetic right shift implements floor division for negative offsets; mask the intra-unit bit index by operand width. */
+        auto shift = dst.getBitSize() == triton::bitsize::word ? 4u :
+                     dst.getBitSize() == triton::bitsize::dword ? 5u : 6u;
+        auto offsetSize = offset->getBitvectorSize();
+        auto delta = this->astCtxt->bvshl(
+                       this->astCtxt->bvashr(offset, this->astCtxt->bv(shift, offsetSize)),
+                       this->astCtxt->bv(shift - 3, offsetSize)
+                     );
+        auto addressSize = this->architecture->gprBitSize();
+        if (hasX86Prefix(inst, 0x67))
+          addressSize = addressSize == triton::bitsize::qword ? triton::bitsize::dword : triton::bitsize::word;
+        if (offsetSize < addressSize)
+          delta = this->astCtxt->sx(addressSize - offsetSize, delta);
+        else if (offsetSize > addressSize)
+          delta = this->astCtxt->extract(addressSize - 1, 0, delta);
+
+        auto& mem = dst.getMemory();
+        mem.setLeaOffset(delta);
+        this->symbolicEngine->initLeaAst(mem);
+      }
+
+
       void x86Semantics::bt_s(triton::arch::Instruction& inst) {
         auto  dst  = triton::arch::OperandWrapper(this->architecture->getRegister(ID_REG_X86_CF));
         auto& src1 = inst.operands[0];
         auto& src2 = inst.operands[1];
 
         /* Create symbolic operands */
-        auto op1 = this->symbolicEngine->getOperandAst(inst, src1);
         auto op2 = this->astCtxt->zx(src1.getBitSize() - src2.getBitSize(), this->symbolicEngine->getOperandAst(inst, src2));
+        this->adjustBitTestMemory_s(inst, src1, src2, op2);
+        auto op1 = this->symbolicEngine->getOperandAst(inst, src1);
 
         /* Create the semantics */
         auto node = this->astCtxt->extract(0, 0,
@@ -3914,8 +3965,9 @@ namespace triton {
         auto& src1 = inst.operands[1];
 
         /* Create symbolic operands */
-        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
         auto op2 = this->astCtxt->zx(dst2.getBitSize() - src1.getBitSize(), this->symbolicEngine->getOperandAst(inst, src1));
+        this->adjustBitTestMemory_s(inst, dst2, src1, op2);
+        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
 
         /* Create the semantics */
         auto node1 = this->astCtxt->extract(0, 0,
@@ -3982,8 +4034,9 @@ namespace triton {
         auto& src1 = inst.operands[1];
 
         /* Create symbolic operands */
-        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
         auto op2 = this->astCtxt->zx(dst2.getBitSize() - src1.getBitSize(), this->symbolicEngine->getOperandAst(inst, src1));
+        this->adjustBitTestMemory_s(inst, dst2, src1, op2);
+        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
 
         /* Create the semantics */
         auto node1 = this->astCtxt->extract(0, 0,
@@ -4039,8 +4092,9 @@ namespace triton {
         auto& src1 = inst.operands[1];
 
         /* Create symbolic operands */
-        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
         auto op2 = this->astCtxt->zx(dst2.getBitSize() - src1.getBitSize(), this->symbolicEngine->getOperandAst(inst, src1));
+        this->adjustBitTestMemory_s(inst, dst2, src1, op2);
+        auto op1 = this->symbolicEngine->getOperandAst(inst, dst2);
 
         /* Create the semantics */
         auto node1 = this->astCtxt->extract(0, 0,

@@ -63,6 +63,9 @@ namespace triton {
         //! The AST of the memory access (LEA).
         triton::ast::SharedAbstractNode leaAst;
 
+        //! Additional byte offset supplied by instruction semantics, added within the address size before the segment base.
+        triton::ast::SharedAbstractNode leaOffset;
+
       private:
         //! Copy a MemoryAccess.
         void copy(const MemoryAccess& other);
@@ -79,6 +82,12 @@ namespace triton {
 
         //! Returns the AST of the memory access (LEA).
         TRITON_EXPORT triton::ast::SharedAbstractNode getLeaAst(void) const;
+
+        //! Returns the additional LEA offset supplied by instruction semantics.
+        TRITON_EXPORT triton::ast::SharedAbstractNode getLeaOffset(void) const;
+
+        //! Sets the additional LEA offset; its bit width defines the effective address size. nullptr means no offset.
+        TRITON_EXPORT void setLeaOffset(const triton::ast::SharedAbstractNode& offset);
 
         //! Returns the address of the memory.
         TRITON_EXPORT triton::uint64 getAddress(void) const;

@@ -76,6 +76,12 @@ namespace triton {
           TRITON_EXPORT triton::arch::exception_e buildSemantics(triton::arch::Instruction& inst);
 
         private:
+          //! Adjusts the memory unit and symbolic address for BT/BTS/BTR/BTC register bit offsets.
+          void adjustBitTestMemory_s(triton::arch::Instruction& inst,
+                                     triton::arch::OperandWrapper& dst,
+                                     const triton::arch::OperandWrapper& src,
+                                     const triton::ast::SharedAbstractNode& offset);
+
           //! Aligns the stack (add). Returns the new stack value.
           triton::uint64 alignAddStack_s(triton::arch::Instruction& inst, triton::uint32 delta);
 

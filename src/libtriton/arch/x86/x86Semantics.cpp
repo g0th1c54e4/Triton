@@ -432,6 +432,27 @@ namespace triton {
   namespace arch {
     namespace x86 {
 
+      namespace {
+        /* Scan only the instruction prefix region; matching bytes in displacements or immediates are not prefixes. */
+        bool hasX86Prefix(const triton::arch::Instruction& inst, triton::uint8 prefix) {
+          for (triton::uint32 i = 0; i < inst.getSize(); ++i) {
+            auto byte = inst.getOpcode()[i];
+            if (byte == prefix)
+              return true;
+            switch (byte) {
+              case 0xf0: case 0xf2: case 0xf3:
+              case 0x2e: case 0x36: case 0x3e: case 0x26: case 0x64: case 0x65:
+              case 0x66: case 0x67:
+                break;
+              default:
+                if (inst.getArchitecture() != triton::arch::ARCH_X86_64 || byte < 0x40 || byte > 0x4f)
+                  return false;
+            }
+          }
+          return false;
+        }
+      }
+
       x86Semantics::x86Semantics(triton::arch::Architecture* architecture,
                                  triton::engines::symbolic::SymbolicEngine* symbolicEngine,
                                  triton::engines::taint::TaintEngine* taintEngine,
@@ -8491,7 +8512,10 @@ namespace triton {
 
 
       void x86Semantics::loop_s(triton::arch::Instruction& inst) {
-        auto  count = triton::arch::OperandWrapper(this->architecture->getParentRegister(ID_REG_X86_CX));
+        auto  count = triton::arch::OperandWrapper(this->architecture->getRegister(
+                        hasX86Prefix(inst, 0x67) ?
+                          (this->architecture->gprBitSize() == triton::bitsize::qword ? ID_REG_X86_ECX : ID_REG_X86_CX) :
+                          this->architecture->getParentRegister(ID_REG_X86_CX).getId()));
         auto  pc    = triton::arch::OperandWrapper(this->architecture->getProgramCounter());
         auto& src   = inst.operands[0];
 
@@ -8531,7 +8555,10 @@ namespace triton {
 
 
       void x86Semantics::loope_s(triton::arch::Instruction& inst) {
-        auto  count = triton::arch::OperandWrapper(this->architecture->getParentRegister(ID_REG_X86_CX));
+        auto  count = triton::arch::OperandWrapper(this->architecture->getRegister(
+                        hasX86Prefix(inst, 0x67) ?
+                          (this->architecture->gprBitSize() == triton::bitsize::qword ? ID_REG_X86_ECX : ID_REG_X86_CX) :
+                          this->architecture->getParentRegister(ID_REG_X86_CX).getId()));
         auto  zf    = triton::arch::OperandWrapper(this->architecture->getRegister(ID_REG_X86_ZF));
         auto  pc    = triton::arch::OperandWrapper(this->architecture->getProgramCounter());
         auto& src   = inst.operands[0];
@@ -8574,7 +8601,10 @@ namespace triton {
 
 
       void x86Semantics::loopne_s(triton::arch::Instruction& inst) {
-        auto  count = triton::arch::OperandWrapper(this->architecture->getParentRegister(ID_REG_X86_CX));
+        auto  count = triton::arch::OperandWrapper(this->architecture->getRegister(
+                        hasX86Prefix(inst, 0x67) ?
+                          (this->architecture->gprBitSize() == triton::bitsize::qword ? ID_REG_X86_ECX : ID_REG_X86_CX) :
+                          this->architecture->getParentRegister(ID_REG_X86_CX).getId()));
         auto  zf    = triton::arch::OperandWrapper(this->architecture->getRegister(ID_REG_X86_ZF));
         auto  pc    = triton::arch::OperandWrapper(this->architecture->getProgramCounter());
         auto& src   = inst.operands[0];
